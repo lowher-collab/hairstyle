@@ -1,0 +1,5 @@
+{
+  "name": "Copy of HairStyle Magic AI",
+  "description": "An AI-powered hairstyle makeover app using Gemini 2.5 Flash Image. Upload your photo and try on new hairstyles via text prompts or style references.",
+  "requestFramePermissions": []
+}
