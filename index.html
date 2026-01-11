@@ -22,6 +22,14 @@
             border: 3px solid #3b82f6;
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
         }
+        .api-option {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .api-option.selected {
+            border: 2px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.2);
+        }
         .loading-spinner {
             border: 4px solid #f3f4f6;
             border-top: 4px solid #3b82f6;
@@ -49,23 +57,52 @@
             <h1 class="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
                 ✨ HairStyle Magic AI
             </h1>
-            <p class="text-slate-400 text-lg">AI 驱动的智能换发型工具 - 8 种经典男士发型任你选</p>
+            <p class="text-slate-400 text-lg">AI 驱动的智能换发型工具 - 支持多个 AI 模型</p>
         </header>
+
+        <!-- API Selection -->
+        <div class="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-slate-700">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                🤖 选择 AI 模型
+            </h3>
+            <div class="grid md:grid-cols-4 gap-4" id="apiSelection">
+                <div class="api-option selected border-2 border-slate-600 rounded-xl p-4 hover:border-blue-500" data-api="gemini">
+                    <div class="text-2xl mb-2">🧠</div>
+                    <div class="font-semibold">Google Gemini</div>
+                    <div class="text-xs text-slate-400 mt-1">推荐 - 效果最好</div>
+                </div>
+                <div class="api-option border-2 border-slate-600 rounded-xl p-4 hover:border-blue-500" data-api="grok">
+                    <div class="text-2xl mb-2">🤖</div>
+                    <div class="font-semibold">xAI Grok</div>
+                    <div class="text-xs text-slate-400 mt-1">马斯克的 AI</div>
+                </div>
+                <div class="api-option border-2 border-slate-600 rounded-xl p-4 hover:border-blue-500" data-api="zhipu">
+                    <div class="text-2xl mb-2">🇨🇳</div>
+                    <div class="font-semibold">智谱 GLM-4V</div>
+                    <div class="text-xs text-slate-400 mt-1">国产模型</div>
+                </div>
+                <div class="api-option border-2 border-slate-600 rounded-xl p-4 hover:border-blue-500" data-api="qwen">
+                    <div class="text-2xl mb-2">☁️</div>
+                    <div class="font-semibold">通义千问 VL</div>
+                    <div class="text-xs text-slate-400 mt-1">阿里云</div>
+                </div>
+            </div>
+        </div>
 
         <!-- API Key Input -->
         <div class="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-slate-700">
             <label class="block text-sm font-medium mb-2 text-slate-300">
-                🔑 Google Gemini API Key
+                🔑 API Key
             </label>
             <input 
                 type="password" 
                 id="apiKey" 
-                placeholder="输入你的 API Key (sk-...)"
+                placeholder="输入你的 API Key"
                 class="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-slate-100"
             >
-            <p class="text-xs text-slate-500 mt-2">
-                获取 API Key: <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-400 hover:underline">Google AI Studio</a>
-            </p>
+            <div id="apiKeyHelp" class="text-xs text-slate-500 mt-2">
+                <p>获取 Gemini API Key: <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-400 hover:underline">Google AI Studio</a></p>
+            </div>
         </div>
 
         <div class="grid lg:grid-cols-2 gap-8">
@@ -138,7 +175,7 @@
                 </div>
 
                 <div id="errorContainer" class="hidden bg-red-900/20 border border-red-500 rounded-xl p-4">
-                    <p class="text-red-400" id="errorMessage"></p>
+                    <p class="text-red-400 whitespace-pre-wrap" id="errorMessage"></p>
                 </div>
             </div>
         </div>
@@ -157,10 +194,29 @@
             { id: 8, name: 'undercut', emoji: '⚔️', description: '两侧铲青造型' }
         ];
 
+        // API help links
+        const apiHelp = {
+            gemini: '<p>获取 Gemini API Key: <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-400 hover:underline">Google AI Studio</a></p>',
+            grok: '<p>获取 Grok API Key: <a href="https://console.x.ai/" target="_blank" class="text-blue-400 hover:underline">xAI Console</a></p><p class="mt-1">使用模型: grok-vision-beta</p>',
+            zhipu: '<p>获取智谱 API Key: <a href="https://open.bigmodel.cn/usercenter/apikeys" target="_blank" class="text-blue-400 hover:underline">智谱 AI 开放平台</a></p><p class="mt-1">使用模型: glm-4v-plus</p>',
+            qwen: '<p>获取通义千问 API Key: <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" class="text-blue-400 hover:underline">阿里云 DashScope</a></p><p class="mt-1">使用模型: qwen-vl-plus</p>'
+        };
+
         // State
         let selectedHairstyle = null;
         let uploadedImage = null;
         let imageBase64 = null;
+        let selectedAPI = 'gemini';
+
+        // Initialize API selection
+        document.querySelectorAll('.api-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.api-option').forEach(el => el.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedAPI = this.dataset.api;
+                document.getElementById('apiKeyHelp').innerHTML = apiHelp[selectedAPI];
+            });
+        });
 
         // Initialize hairstyles
         const hairstyleGrid = document.getElementById('hairstyleGrid');
@@ -239,59 +295,19 @@
             showLoading();
 
             try {
-                const prompt = `请为这张照片中的人换上"${selectedHairstyle.name}"发型。
-要求：
-1. 保持人物面部特征完全不变
-2. 只改变发型为${selectedHairstyle.description}
-3. 发型要自然真实，符合亚洲男性特征
-4. 保持原图的光线和背景
-5. 生成高质量的真实照片效果`;
-
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: prompt },
-                                {
-                                    inline_data: {
-                                        mime_type: uploadedImage.type,
-                                        data: imageBase64
-                                    }
-                                }
-                            ]
-                        }],
-                        generationConfig: {
-                            temperature: 0.4,
-                            topK: 32,
-                            topP: 1,
-                            maxOutputTokens: 4096,
-                        }
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error?.message || '生成失败');
+                let result;
+                if (selectedAPI === 'gemini') {
+                    result = await generateWithGemini(apiKey);
+                } else if (selectedAPI === 'grok') {
+                    result = await generateWithGrok(apiKey);
+                } else if (selectedAPI === 'zhipu') {
+                    result = await generateWithZhipu(apiKey);
+                } else if (selectedAPI === 'qwen') {
+                    result = await generateWithQwen(apiKey);
                 }
 
-                const data = await response.json();
-                
-                // Check if image was generated
-                if (data.candidates && data.candidates[0].content.parts) {
-                    const imagePart = data.candidates[0].content.parts.find(part => part.inlineData);
-                    
-                    if (imagePart) {
-                        const generatedImage = imagePart.inlineData.data;
-                        const mimeType = imagePart.inlineData.mimeType;
-                        showResult(`data:${mimeType};base64,${generatedImage}`);
-                    } else {
-                        const textResponse = data.candidates[0].content.parts[0].text;
-                        showError('AI 返回了文本而不是图片，请重试。返回内容：' + textResponse);
-                    }
+                if (result) {
+                    showResult(result);
                 } else {
                     showError('生成失败，请检查 API Key 或重试');
                 }
@@ -300,6 +316,221 @@
                 console.error('Error:', error);
                 showError(`生成失败: ${error.message}`);
             }
+        }
+
+        async function generateWithGemini(apiKey) {
+            const prompt = `请为这张照片中的人换上"${selectedHairstyle.name}"发型。
+要求：
+1. 保持人物面部特征完全不变
+2. 只改变发型为${selectedHairstyle.description}
+3. 发型要自然真实，符合亚洲男性特征
+4. 保持原图的光线和背景
+5. 生成高质量的真实照片效果`;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: prompt },
+                            {
+                                inline_data: {
+                                    mime_type: uploadedImage.type,
+                                    data: imageBase64
+                                }
+                            }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.4,
+                        topK: 32,
+                        topP: 1,
+                        maxOutputTokens: 4096,
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                let errorMsg = errorData.error?.message || '生成失败';
+                
+                if (errorMsg.includes('quota') || errorMsg.includes('Quota')) {
+                    errorMsg = '⚠️ Gemini API 配额已用完！\n\n解决方法：\n1. 等待 1 分钟后重试\n2. 明天再试（配额每天重置）\n3. 尝试其他 AI 模型（智谱或通义千问）';
+                }
+                
+                throw new Error(errorMsg);
+            }
+
+            const data = await response.json();
+            
+            if (data.candidates && data.candidates[0].content.parts) {
+                const imagePart = data.candidates[0].content.parts.find(part => part.inlineData);
+                
+                if (imagePart) {
+                    const generatedImage = imagePart.inlineData.data;
+                    const mimeType = imagePart.inlineData.mimeType;
+                    return `data:${mimeType};base64,${generatedImage}`;
+                }
+            }
+            return null;
+        }
+
+        async function generateWithGrok(apiKey) {
+            const prompt = `Please change the hairstyle of the person in this photo to "${selectedHairstyle.name}" (${selectedHairstyle.description}). Keep the facial features exactly the same, only modify the hairstyle to make it natural and realistic.`;
+
+            const response = await fetch('https://api.x.ai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: "grok-vision-beta",
+                    messages: [{
+                        role: "user",
+                        content: [
+                            { 
+                                type: "text", 
+                                text: prompt 
+                            },
+                            { 
+                                type: "image_url", 
+                                image_url: {
+                                    url: `data:${uploadedImage.type};base64,${imageBase64}`
+                                }
+                            }
+                        ]
+                    }],
+                    temperature: 0.7
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                let errorMsg = errorData.error?.message || 'Grok API 调用失败';
+                
+                if (errorMsg.includes('quota') || errorMsg.includes('rate limit')) {
+                    errorMsg = '⚠️ Grok API 配额已用完或速率受限！\n\n建议切换到 Google Gemini 模型';
+                }
+                
+                throw new Error(errorMsg);
+            }
+
+            const data = await response.json();
+            
+            // Grok 可能返回文本描述或图像 URL
+            if (data.choices && data.choices[0].message) {
+                const content = data.choices[0].message.content;
+                
+                // 检查是否包含图像数据
+                if (typeof content === 'string' && (content.includes('data:image') || content.includes('http'))) {
+                    return content;
+                } else if (Array.isArray(content)) {
+                    // 检查是否有图像部分
+                    const imagePart = content.find(part => part.type === 'image_url' || part.image_url);
+                    if (imagePart) {
+                        return imagePart.image_url?.url || imagePart.url;
+                    }
+                }
+                
+                // 如果只返回文本
+                throw new Error('Grok 返回了文本而非图像。注意：Grok Vision 主要用于图像理解，可能不支持图像生成。建议使用 Google Gemini。');
+            }
+            return null;
+        }
+
+        async function generateWithZhipu(apiKey) {
+            const prompt = `请为这张照片中的人换上"${selectedHairstyle.name}"(${selectedHairstyle.description})发型。保持面部特征不变，只改变发型，要自然真实。`;
+
+            const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: "glm-4v-plus",
+                    messages: [{
+                        role: "user",
+                        content: [
+                            { type: "text", text: prompt },
+                            { 
+                                type: "image_url", 
+                                image_url: { 
+                                    url: `data:${uploadedImage.type};base64,${imageBase64}` 
+                                }
+                            }
+                        ]
+                    }]
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || '智谱 AI 调用失败');
+            }
+
+            const data = await response.json();
+            
+            // Note: 智谱 GLM-4V 可能返回文本描述而非图像
+            // 这里需要根据实际 API 响应调整
+            if (data.choices && data.choices[0].message) {
+                const content = data.choices[0].message.content;
+                // 如果返回的是图像 URL 或 base64
+                if (content.includes('data:image') || content.includes('http')) {
+                    return content;
+                } else {
+                    throw new Error('智谱模型返回了文本而非图像。注意：GLM-4V 主要用于图像理解，不生成图像。建议使用 Gemini。');
+                }
+            }
+            return null;
+        }
+
+        async function generateWithQwen(apiKey) {
+            const prompt = `请为这张照片中的人换上"${selectedHairstyle.name}"(${selectedHairstyle.description})发型。保持面部特征不变，只改变发型，要自然真实。`;
+
+            const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                    'X-DashScope-Async': 'enable'
+                },
+                body: JSON.stringify({
+                    model: "qwen-vl-plus",
+                    input: {
+                        messages: [{
+                            role: "user",
+                            content: [
+                                { text: prompt },
+                                { image: `data:${uploadedImage.type};base64,${imageBase64}` }
+                            ]
+                        }]
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '通义千问调用失败');
+            }
+
+            const data = await response.json();
+            
+            // Note: 通义千问 VL 主要用于图像理解，不直接生成图像
+            // 这里需要根据实际 API 响应调整
+            if (data.output && data.output.choices) {
+                const content = data.output.choices[0].message.content;
+                if (typeof content === 'string' && (content.includes('data:image') || content.includes('http'))) {
+                    return content;
+                } else {
+                    throw new Error('通义千问返回了文本而非图像。注意：Qwen-VL 主要用于图像理解，不生成图像。建议使用 Gemini。');
+                }
+            }
+            return null;
         }
 
         function showLoading() {
@@ -315,6 +546,7 @@
                     <img src="${imageUrl}" class="preview-image mx-auto mb-4">
                     <div class="text-center space-y-2">
                         <p class="text-slate-400">发型: ${selectedHairstyle.emoji} ${selectedHairstyle.name}</p>
+                        <p class="text-xs text-slate-500">使用模型: ${selectedAPI === 'gemini' ? 'Google Gemini' : selectedAPI === 'grok' ? 'xAI Grok' : selectedAPI === 'zhipu' ? '智谱 GLM-4V' : '通义千问 VL'}</p>
                         <a href="${imageUrl}" download="hairstyle-result.png" 
                            class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
                             💾 下载图片
